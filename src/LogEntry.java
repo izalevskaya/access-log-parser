@@ -10,37 +10,62 @@ public class LogEntry {
 
     private final String ipAddress;
     private final LocalDateTime dateTime;
+    private final String path;
+    private final int responseCode;
     private final long responseSize;
     private final UserAgent userAgent;
 
     public LogEntry(String line) {
+        // Разбиваем строку по пробелам
+        String[] parts = line.split(" ");
 
+        // 1. IP-адрес - первый элемент
+        this.ipAddress = parts[0];
 
-        this.ipAddress = line.substring(0, line.indexOf(" "));
-
-
-        int lb = line.indexOf('[');
-        int rb = line.indexOf(']');
-        String dateStr = line.substring(lb + 1, rb);
+        // 2. Дата и время - находится в квадратных скобках
+        String dateStr = parts[3] + " " + parts[4];
+        dateStr = dateStr.substring(1, dateStr.length() - 1); // убираем [ и ]
         OffsetDateTime odt = OffsetDateTime.parse(dateStr, LOG_DATE_FORMAT);
         this.dateTime = odt.toLocalDateTime();
 
+        // 3. Путь запроса
+        String requestPath = parts[6];
+        this.path = requestPath;
 
-        int requestEnd = line.indexOf("\"", rb) + 1;
-        int secondQuote = line.indexOf("\"", requestEnd);
-        String afterRequest = line.substring(secondQuote + 2); // пропускаем " и пробел
+        // 4. Код ответа
+        int tempResponseCode;
+        try {
+            tempResponseCode = Integer.parseInt(parts[8]);
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            tempResponseCode = 0;
+        }
+        this.responseCode = tempResponseCode;
 
-        String[] parts = afterRequest.split(" ");
+        // 5. Размер ответа
+        long tempResponseSize;
+        try {
+            String sizeStr = parts[9];
+            tempResponseSize = "-".equals(sizeStr) ? 0 : Long.parseLong(sizeStr);
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            tempResponseSize = 0;
+        }
+        this.responseSize = tempResponseSize;
 
+        // 6. User-Agent
+        StringBuilder userAgentBuilder = new StringBuilder();
+        for (int i = 11; i < parts.length; i++) {
+            if (userAgentBuilder.length() > 0) {
+                userAgentBuilder.append(" ");
+            }
+            userAgentBuilder.append(parts[i]);
+        }
 
-        String sizeStr = parts[1];
-        this.responseSize = "-".equals(sizeStr) ? 0 : Long.parseLong(sizeStr);
+        String userAgentStr = userAgentBuilder.toString();
+        if (userAgentStr.startsWith("\"") && userAgentStr.endsWith("\"")) {
+            userAgentStr = userAgentStr.substring(1, userAgentStr.length() - 1);
+        }
 
-
-        int lastQuote = line.lastIndexOf('"');
-        int prevQuote = line.lastIndexOf('"', lastQuote - 1);
-        String agent = line.substring(prevQuote + 1, lastQuote);
-        this.userAgent = new UserAgent(agent);
+        this.userAgent = new UserAgent(userAgentStr);
     }
 
     public LocalDateTime getDateTime() {
@@ -53,5 +78,17 @@ public class LogEntry {
 
     public UserAgent getUserAgent() {
         return userAgent;
+    }
+
+    public int getResponseCode() {
+        return responseCode;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
     }
 }
