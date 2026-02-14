@@ -1,5 +1,6 @@
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -15,11 +16,15 @@ public class Statistics {
     // HashMap для подсчета количества вхождений каждого браузера
     private HashMap<String, Integer> browserStatistics = new HashMap<>();
 
-    // Новые поля для дополнительной статистики
+    // Поля для дополнительной статистики
     private int totalVisits = 0;                    // Общее количество посещений
     private int totalBotVisits = 0;                  // Количество посещений ботами
     private int totalErrorRequests = 0;               // Количество ошибочных запросов (4xx, 5xx)
     private HashMap<String, Integer> userVisits = new HashMap<>(); // IP -> количество посещений
+
+    // НОВЫЕ ПОЛЯ
+    private HashMap<Integer, Integer> visitsPerSecond = new HashMap<>(); // Секунда -> количество посещений
+    private HashSet<String> refererDomains = new HashSet<>(); // Домены referer-ов
 
     public Statistics() {
     }
@@ -73,6 +78,29 @@ public class Statistics {
                 userVisits.put(ip, visits + 1);
             } else {
                 userVisits.put(ip, 1);
+            }
+        }
+
+        // 8. НОВОЕ: Учитываем посещения по секундам (только для реальных пользователей)
+        if (!isBot) {
+            // Получаем количество секунд от начала суток
+            LocalDateTime dateTime = entry.getDateTime();
+            int secondOfDay = dateTime.toLocalTime().toSecondOfDay();
+
+            if (visitsPerSecond.containsKey(secondOfDay)) {
+                int count = visitsPerSecond.get(secondOfDay);
+                visitsPerSecond.put(secondOfDay, count + 1);
+            } else {
+                visitsPerSecond.put(secondOfDay, 1);
+            }
+        }
+
+        // 9. НОВОЕ: Собираем домены referer-ов
+        String referer = entry.getReferer();
+        if (referer != null && !referer.isEmpty() && !referer.equals("-")) {
+            String domain = extractDomain(referer);
+            if (domain != null && !domain.isEmpty()) {
+                refererDomains.add(domain);
             }
         }
     }
@@ -175,6 +203,86 @@ public class Statistics {
     }
 
     /**
+     * НОВЫЙ МЕТОД: Расчёт пиковой посещаемости сайта (в секунду)
+     * Возвращает максимальное количество посещений за одну секунду
+     * (только реальные пользователи, не боты)
+     */
+    public int getPeakVisitsPerSecond() {
+        int maxVisits = 0;
+
+        for (int visits : visitsPerSecond.values()) {
+            if (visits > maxVisits) {
+                maxVisits = visits;
+            }
+        }
+
+        return maxVisits;
+    }
+
+    /**
+     * НОВЫЙ МЕТОД: Возвращает список сайтов, со страниц которых есть ссылки на текущий сайт
+     */
+    public HashSet<String> getRefererDomains() {
+        return new HashSet<>(refererDomains);
+    }
+
+    /**
+     * НОВЫЙ МЕТОД: Расчёт максимальной посещаемости одним пользователем
+     * (только реальные пользователи, не боты)
+     */
+    public int getMaxVisitsPerUser() {
+        int maxVisits = 0;
+
+        for (int visits : userVisits.values()) {
+            if (visits > maxVisits) {
+                maxVisits = visits;
+            }
+        }
+
+        return maxVisits;
+    }
+
+    /**
+     * Вспомогательный метод для извлечения домена из URL
+     */
+    private String extractDomain(String url) {
+        if (url == null || url.isEmpty()) {
+            return null;
+        }
+
+        try {
+            // Убираем протокол (http://, https://)
+            String domain = url.toLowerCase();
+            if (domain.startsWith("http://")) {
+                domain = domain.substring(7);
+            } else if (domain.startsWith("https://")) {
+                domain = domain.substring(8);
+            }
+
+            // Убираем путь и параметры после домена
+            int slashIndex = domain.indexOf('/');
+            if (slashIndex > 0) {
+                domain = domain.substring(0, slashIndex);
+            }
+
+            // Убираем порт, если есть
+            int portIndex = domain.indexOf(':');
+            if (portIndex > 0) {
+                domain = domain.substring(0, portIndex);
+            }
+
+            // Убираем www
+            if (domain.startsWith("www.")) {
+                domain = domain.substring(4);
+            }
+
+            return domain;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Дополнительные геттеры для отладки
      */
     public int getTotalVisits() {
@@ -191,5 +299,12 @@ public class Statistics {
 
     public int getUniqueUsers() {
         return userVisits.size();
+    }
+
+    /**
+     * Дополнительный метод для получения детальной информации о посещаемости по секундам
+     */
+    public HashMap<Integer, Integer> getVisitsPerSecond() {
+        return new HashMap<>(visitsPerSecond);
     }
 }

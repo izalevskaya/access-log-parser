@@ -13,6 +13,7 @@ public class LogEntry {
     private final String path;
     private final int responseCode;
     private final long responseSize;
+    private final String referer;           // НОВОЕ ПОЛЕ
     private final UserAgent userAgent;
 
     public LogEntry(String line) {
@@ -51,7 +52,24 @@ public class LogEntry {
         }
         this.responseSize = tempResponseSize;
 
-        // 6. User-Agent
+        // 6. НОВОЕ: Парсинг referer (находится в parts[10])
+        String tempReferer;
+        try {
+            tempReferer = parts[10];
+            // Убираем кавычки, если они есть
+            if (tempReferer.startsWith("\"") && tempReferer.endsWith("\"")) {
+                tempReferer = tempReferer.substring(1, tempReferer.length() - 1);
+            }
+            // Если referer равен "-", считаем его пустым
+            if ("-".equals(tempReferer)) {
+                tempReferer = "";
+            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            tempReferer = "";
+        }
+        this.referer = tempReferer;
+
+        // 7. User-Agent (начинается с parts[11])
         StringBuilder userAgentBuilder = new StringBuilder();
         for (int i = 11; i < parts.length; i++) {
             if (userAgentBuilder.length() > 0) {
@@ -90,5 +108,10 @@ public class LogEntry {
 
     public String getIpAddress() {
         return ipAddress;
+    }
+
+    // НОВЫЙ МЕТОД
+    public String getReferer() {
+        return referer;
     }
 }
