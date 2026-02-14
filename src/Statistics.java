@@ -9,11 +9,11 @@ public class Statistics {
     private LocalDateTime minTime = null;
     private LocalDateTime maxTime = null;
 
-    // Множество для хранения уникальных страниц с кодом ответа 200
-    private HashSet<String> existingPages = new HashSet<>();
+    // Множество для хранения уникальных страниц с кодом ответа 404 (несуществующие)
+    private HashSet<String> nonExistingPages = new HashSet<>();
 
-    // HashMap для подсчета количества вхождений каждой операционной системы
-    private HashMap<String, Integer> osStatistics = new HashMap<>();
+    // HashMap для подсчета количества вхождений каждого браузера
+    private HashMap<String, Integer> browserStatistics = new HashMap<>();
 
     public Statistics() {
     }
@@ -28,22 +28,22 @@ public class Statistics {
             maxTime = entry.getDateTime();
         }
 
-        // 1. Добавляем адреса существующих страниц с кодом ответа 200
-        if (entry.getResponseCode() == 200) {
-            existingPages.add(entry.getPath());
+        // 1. Добавляем адреса несуществующих страниц с кодом ответа 404
+        if (entry.getResponseCode() == 404) {
+            nonExistingPages.add(entry.getPath());
         }
 
-        // 2. Подсчитываем статистику операционных систем
-        String os = entry.getUserAgent().getOperatingSystem();
+        // 2. Подсчитываем статистику браузеров
+        String browser = entry.getUserAgent().getBrowser();
 
-        // Проверяем, есть ли уже такая ОС в HashMap
-        if (osStatistics.containsKey(os)) {
+        // Проверяем, есть ли уже такой браузер в HashMap
+        if (browserStatistics.containsKey(browser)) {
             // Если есть, увеличиваем значение на 1
-            int currentCount = osStatistics.get(os);
-            osStatistics.put(os, currentCount + 1);
+            int currentCount = browserStatistics.get(browser);
+            browserStatistics.put(browser, currentCount + 1);
         } else {
             // Если нет, добавляем запись со значением 1
-            osStatistics.put(os, 1);
+            browserStatistics.put(browser, 1);
         }
     }
 
@@ -61,37 +61,37 @@ public class Statistics {
     }
 
     /**
-     * Возвращает список всех существующих страниц сайта (с кодом ответа 200)
+     * Возвращает список всех несуществующих страниц сайта (с кодом ответа 404)
      */
-    public HashSet<String> getExistingPages() {
-        return new HashSet<>(existingPages); // Возвращаем копию для защиты данных
+    public HashSet<String> getNonExistingPages() {
+        return new HashSet<>(nonExistingPages); // Возвращаем копию для защиты данных
     }
 
     /**
-     * Возвращает статистику операционных систем пользователей сайта
-     * в виде долей от 0 до 1 для каждой операционной системы
+     * Возвращает статистику браузеров пользователей сайта
+     * в виде долей от 0 до 1 для каждого браузера
      */
-    public HashMap<String, Double> getOsStatistics() {
-        HashMap<String, Double> osShares = new HashMap<>();
+    public HashMap<String, Double> getBrowserStatistics() {
+        HashMap<String, Double> browserShares = new HashMap<>();
 
         // Вычисляем общее количество запросов
         int totalCount = 0;
-        for (int count : osStatistics.values()) {
+        for (int count : browserStatistics.values()) {
             totalCount += count;
         }
 
         // Если нет данных, возвращаем пустой HashMap
         if (totalCount == 0) {
-            return osShares;
+            return browserShares;
         }
 
-        // Рассчитываем долю для каждой операционной системы
-        for (String os : osStatistics.keySet()) {
-            int count = osStatistics.get(os);
+        // Рассчитываем долю для каждого браузера
+        for (String browser : browserStatistics.keySet()) {
+            int count = browserStatistics.get(browser);
             double share = (double) count / totalCount;
-            osShares.put(os, share);
+            browserShares.put(browser, share);
         }
 
-        return osShares;
+        return browserShares;
     }
 }
