@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class Main {
+public class Main {  // <- Класс начинается здесь
 
     public static void main(String[] args) {
 
@@ -60,10 +60,26 @@ public class Main {
                 }
             }
 
+            // Дополнительная статистика
+            System.out.println("\n=== Дополнительная статистика ===");
+            System.out.printf("Среднее количество посещений в час (реальные пользователи): %.2f%n",
+                    stats.getAverageVisitsPerHour());
+            System.out.printf("Среднее количество ошибочных запросов в час: %.2f%n",
+                    stats.getAverageErrorsPerHour());
+            System.out.printf("Средняя посещаемость одним пользователем: %.2f%n",
+                    stats.getAverageVisitsPerUser());
+
+            System.out.println("\n=== Детали ===");
+            System.out.println("Всего записей: " + stats.getTotalVisits());
+            System.out.println("Запросов от ботов: " + stats.getTotalBotVisits());
+            System.out.println("Ошибочных запросов (4xx, 5xx): " + stats.getTotalErrorRequests());
+            System.out.println("Уникальных пользователей (не боты): " + stats.getUniqueUsers());
+
         } catch (LongLineException e) {
             System.out.println(e.getMessage());
         } catch (IOException e) {
             System.out.println("Ошибка чтения файла: " + e.getMessage());
         }
     }
-}
+
+}  // <- Класс заканчивается здесь

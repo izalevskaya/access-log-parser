@@ -15,6 +15,12 @@ public class Statistics {
     // HashMap для подсчета количества вхождений каждого браузера
     private HashMap<String, Integer> browserStatistics = new HashMap<>();
 
+    // Новые поля для дополнительной статистики
+    private int totalVisits = 0;                    // Общее количество посещений
+    private int totalBotVisits = 0;                  // Количество посещений ботами
+    private int totalErrorRequests = 0;               // Количество ошибочных запросов (4xx, 5xx)
+    private HashMap<String, Integer> userVisits = new HashMap<>(); // IP -> количество посещений
+
     public Statistics() {
     }
 
@@ -35,15 +41,39 @@ public class Statistics {
 
         // 2. Подсчитываем статистику браузеров
         String browser = entry.getUserAgent().getBrowser();
-
-        // Проверяем, есть ли уже такой браузер в HashMap
         if (browserStatistics.containsKey(browser)) {
-            // Если есть, увеличиваем значение на 1
             int currentCount = browserStatistics.get(browser);
             browserStatistics.put(browser, currentCount + 1);
         } else {
-            // Если нет, добавляем запись со значением 1
             browserStatistics.put(browser, 1);
+        }
+
+        // 3. Проверяем, является ли запрос от бота
+        boolean isBot = entry.getUserAgent().isBot();
+
+        // 4. Увеличиваем общее количество посещений
+        totalVisits++;
+
+        // 5. Если это бот, увеличиваем счетчик ботов
+        if (isBot) {
+            totalBotVisits++;
+        }
+
+        // 6. Проверяем, является ли запрос ошибочным (код 4xx или 5xx)
+        int responseCode = entry.getResponseCode();
+        if (responseCode >= 400 && responseCode < 600) {
+            totalErrorRequests++;
+        }
+
+        // 7. Учитываем посещения по IP-адресам для реальных пользователей (не ботов)
+        if (!isBot) {
+            String ip = entry.getIpAddress();
+            if (userVisits.containsKey(ip)) {
+                int visits = userVisits.get(ip);
+                userVisits.put(ip, visits + 1);
+            } else {
+                userVisits.put(ip, 1);
+            }
         }
     }
 
@@ -64,7 +94,7 @@ public class Statistics {
      * Возвращает список всех несуществующих страниц сайта (с кодом ответа 404)
      */
     public HashSet<String> getNonExistingPages() {
-        return new HashSet<>(nonExistingPages); // Возвращаем копию для защиты данных
+        return new HashSet<>(nonExistingPages);
     }
 
     /**
@@ -74,18 +104,15 @@ public class Statistics {
     public HashMap<String, Double> getBrowserStatistics() {
         HashMap<String, Double> browserShares = new HashMap<>();
 
-        // Вычисляем общее количество запросов
         int totalCount = 0;
         for (int count : browserStatistics.values()) {
             totalCount += count;
         }
 
-        // Если нет данных, возвращаем пустой HashMap
         if (totalCount == 0) {
             return browserShares;
         }
 
-        // Рассчитываем долю для каждого браузера
         for (String browser : browserStatistics.keySet()) {
             int count = browserStatistics.get(browser);
             double share = (double) count / totalCount;
@@ -93,5 +120,76 @@ public class Statistics {
         }
 
         return browserShares;
+    }
+
+    /**
+     * Метод подсчёта среднего количества посещений сайта за час
+     * (только реальные пользователи, не боты)
+     */
+    public double getAverageVisitsPerHour() {
+        if (minTime == null || maxTime == null) {
+            return 0;
+        }
+
+        long hours = Duration.between(minTime, maxTime).toHours();
+        if (hours <= 0) {
+            hours = 1;
+        }
+
+        int realUserVisits = totalVisits - totalBotVisits;
+        return (double) realUserVisits / hours;
+    }
+
+    /**
+     * Метод подсчёта среднего количества ошибочных запросов в час
+     */
+    public double getAverageErrorsPerHour() {
+        if (minTime == null || maxTime == null) {
+            return 0;
+        }
+
+        long hours = Duration.between(minTime, maxTime).toHours();
+        if (hours <= 0) {
+            hours = 1;
+        }
+
+        return (double) totalErrorRequests / hours;
+    }
+
+    /**
+     * Метод расчёта средней посещаемости одним пользователем
+     * (только реальные пользователи, не боты)
+     */
+    public double getAverageVisitsPerUser() {
+        // Общее количество посещений реальными пользователями
+        int realUserVisits = totalVisits - totalBotVisits;
+
+        // Количество уникальных IP-адресов реальных пользователей
+        int uniqueUsers = userVisits.size();
+
+        if (uniqueUsers == 0) {
+            return 0;
+        }
+
+        return (double) realUserVisits / uniqueUsers;
+    }
+
+    /**
+     * Дополнительные геттеры для отладки
+     */
+    public int getTotalVisits() {
+        return totalVisits;
+    }
+
+    public int getTotalBotVisits() {
+        return totalBotVisits;
+    }
+
+    public int getTotalErrorRequests() {
+        return totalErrorRequests;
+    }
+
+    public int getUniqueUsers() {
+        return userVisits.size();
     }
 }

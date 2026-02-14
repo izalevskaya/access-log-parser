@@ -43,4 +43,26 @@ public class UserAgent {
 
         return "Unknown";
     }
+
+    // НОВЫЙ МЕТОД для определения бота
+    public boolean isBot() {
+        String ua = userAgent.toLowerCase();
+
+        // Список ключевых слов, указывающих на бота
+        String[] botKeywords = {
+                "bot", "crawler", "spider", "scanner", "checker", "monitor",
+                "yahoo! slurp", "googlebot", "yandexbot", "bingbot", "baiduspider",
+                "facebookexternalhit", "twitterbot", "slackbot", "telegrambot",
+                "ahrefs", "semrush", "mj12bot", "dotbot", "rogerbot", "exabot",
+                "curl", "wget", "python-requests", "java", "httpclient", "scrapy"
+        };
+
+        for (String keyword : botKeywords) {
+            if (ua.contains(keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
