@@ -1,9 +1,8 @@
-import java.util.HashSet;
-import java.util.HashMap;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class Main {
@@ -37,27 +36,27 @@ public class Main {
             // Вывод среднего трафика
             System.out.printf("Средний трафик в час: %.2f%n", stats.getTrafficRate());
 
-            // ДОБАВЛЯЕМ ВЫВОД СПИСКА СТРАНИЦ
-            System.out.println("\n=== Существующие страницы сайта (код 200) ===");
-            HashSet<String> pages = stats.getExistingPages();
-            if (pages.isEmpty()) {
-                System.out.println("Страницы с кодом 200 не найдены");
+            // Вывод списка несуществующих страниц (код 404)
+            System.out.println("\n=== Несуществующие страницы сайта (код 404) ===");
+            HashSet<String> nonExistingPages = stats.getNonExistingPages();
+            if (nonExistingPages.isEmpty()) {
+                System.out.println("Страницы с кодом 404 не найдены");
             } else {
-                for (String page : pages) {
+                for (String page : nonExistingPages) {
                     System.out.println(page);
                 }
-                System.out.println("Всего страниц: " + pages.size());
+                System.out.println("Всего несуществующих страниц: " + nonExistingPages.size());
             }
 
-            // ДОБАВЛЯЕМ ВЫВОД СТАТИСТИКИ ОС
-            System.out.println("\n=== Статистика операционных систем ===");
-            HashMap<String, Double> osStats = stats.getOsStatistics();
-            if (osStats.isEmpty()) {
-                System.out.println("Данные об ОС не найдены");
+            // Вывод статистики браузеров
+            System.out.println("\n=== Статистика браузеров ===");
+            HashMap<String, Double> browserStats = stats.getBrowserStatistics();
+            if (browserStats.isEmpty()) {
+                System.out.println("Данные о браузерах не найдены");
             } else {
-                for (String os : osStats.keySet()) {
-                    double share = osStats.get(os);
-                    System.out.printf("%s: %.2f%%%n", os, share * 100);
+                for (String browser : browserStats.keySet()) {
+                    double share = browserStats.get(browser);
+                    System.out.printf("%s: %.2f%%%n", browser, share * 100);
                 }
             }
 
